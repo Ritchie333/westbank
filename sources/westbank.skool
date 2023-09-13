@@ -8217,8 +8217,8 @@ c$D2CF LD HL,($CE12) ; #R$CE12
 ; This routine is called indirectly from #R$D2CF
 ;
 ; A Bits set, depending on user input
-c$D2D7 LD C,A        ;
- $D2D8 XOR A         ;
+c$D2D7 LD C,A        ; Put the bits in C.
+ $D2D8 XOR A         ; { Clear all the input flags from #R$D2FF to #R$D302.
  $D2D9 LD HL,$D2FF   ;
  $D2DC LD (HL),A     ;
  $D2DD INC HL        ;
@@ -8226,21 +8226,21 @@ c$D2D7 LD C,A        ;
  $D2DF INC HL        ;
  $D2E0 LD (HL),A     ;
  $D2E1 INC HL        ;
- $D2E2 LD (HL),A     ;
- $D2E3 LD A,C        ;
- $D2E4 BIT 4,A       ;
- $D2E6 JR NZ,$D307   ;
- $D2E8 LD HL,$D303   ;
+ $D2E2 LD (HL),A     ; }
+ $D2E3 LD A,C        ; Get the bits back.
+ $D2E4 BIT 4,A       ; Did the player fire at any of the doors?
+ $D2E6 JR NZ,$D307   ; Jump if so.
+ $D2E8 LD HL,$D303   ; { Clear all the input flags from #R$D303 to #R$D305.
  $D2EB LD (HL),$00   ;
  $D2ED INC HL        ;
  $D2EE LD (HL),$00   ;
  $D2F0 INC HL        ;
- $D2F1 LD (HL),$00   ;
- $D2F3 BIT 0,A       ;
- $D2F5 JP NZ,$D386   ;
- $D2F8 BIT 1,A       ;
- $D2FA JP NZ,$D38C   ;
- $D2FD RET           ;
+ $D2F1 LD (HL),$00   ; }
+ $D2F3 BIT 0,A       ; Did the player move right?
+ $D2F5 JP NZ,$D386   ; Jump if so.
+ $D2F8 BIT 1,A       ; Did the player move left?
+ $D2FA JP NZ,$D38C   ; Jump if so.
+ $D2FD RET           ; Otherwise return.
 
 ; Player mistakes
 ;
@@ -10872,13 +10872,16 @@ c$F950 NOP           ;
  $F95D NOP           ;
  $F95E NOP           ;
  $F95F NOP           ;
-; This entry point is used by the routine at #R$CAE7.
-*$F960 LD HL,$5B00   ; {Blanks 254 bytes from #R$5B00 onwards.
+
+; Ring the cash register
+;
+; Used by the routine at #R$CAE7.
+c$F960 LD HL,$5B00   ; {Blanks #N$FE bytes from #R$5B00 onwards.
  $F963 LD DE,$5B01   ;
  $F966 LD BC,$00FE   ;
  $F969 LD (HL),$00   ;
  $F96B LDIR          ; }
- $F96D LD DE,$F940   ; {Sends #R$F940 to #R$F9C3.
+ $F96D LD DE,$F940   ; {Draw frame 3 (#R$F940) and pause.
  $F970 NOP           ;
  $F971 NOP           ;
  $F972 CALL $F9C3    ; }
@@ -10887,7 +10890,7 @@ c$F950 NOP           ;
  $F97B CALL $03B5    ; { =h Pitch | =h Duration }
                      ; { #N$0CF8 | #N$0006 }
                      ; TABLE#}
- $F97E LD DE,$F900   ; {Sends #R$F900 to #R$F9C3.
+ $F97E LD DE,$F900   ; {Draw frame 1 (#R$F900) and pause.
  $F981 NOP           ;
  $F982 NOP           ;
  $F983 CALL $F9C3    ; }
@@ -10896,7 +10899,7 @@ c$F950 NOP           ;
  $F98C CALL $03B5    ; { =h Pitch | =h Duration }
                      ; { #N$079E | #N$0006 }
                      ; TABLE#}
- $F98F LD DE,$F920   ; {Sends #R$F920 to #R$F9C3.
+ $F98F LD DE,$F920   ; {Draw frame 2 (#R$F920) nd pause.
  $F992 NOP           ;
  $F993 NOP           ;
  $F994 CALL $F9C3    ; }
@@ -10905,7 +10908,7 @@ c$F950 NOP           ;
  $F99D CALL $03B5    ; { =h Pitch | =h Duration }
                      ; { #N$029E | #N$0006 }
                      ; TABLE#}
- $F9A0 LD DE,$F900   ; {Sends #R$F900 to #R$F9C3.
+ $F9A0 LD DE,$F900   ; {Draw frame 1  (#R$F900) and pause.
  $F9A3 NOP           ;
  $F9A4 NOP           ;
  $F9A5 CALL $F9C3    ; }
@@ -10914,67 +10917,53 @@ c$F950 NOP           ;
  $F9AE CALL $03B5    ; { =h Pitch | =h Duration }
                      ; { #N$0209 | #N$0020 }
                      ; TABLE#}
- $F9B1 LD DE,$F920   ; {Sends #R$F920 to #R$F9C3.
+ $F9B1 LD DE,$F920   ; {Draw frame 2 (#R$F940) and pause.
  $F9B4 NOP           ;
  $F9B5 NOP           ;
  $F9B6 CALL $F9C3    ; }
  $F9B9 HALT          ;
- $F9BA LD DE,$5B00   ; {Sends #R$5B00 to #R$F9C3 (blanks the centrepiece).
+ $F9BA LD DE,$5B00   ; {Blank the centrepiece.
  $F9BD NOP           ;
  $F9BE NOP           ;
  $F9BF CALL $F9C3    ; }
  $F9C2 RET           ; Return.
-; Draws the image to the screen.
+
+; Draw a dollar image to the screen.
+;
+; Used by the routine at #R$F960
+;
+; DE Address of graphic to draw
 @label=Dollar_Scroll_Draw
-*$F9C3 LD HL,$402F   ;
- $F9C6 LD BC,$1002   ;
+c$F9C3 LD HL,$402F   ; Location on screen to print
+ $F9C6 LD BC,$1002   ; Number of rows and columns
 @label=Dollar_Scroll_Draw_Loop
-*$F9C9 PUSH BC       ;
- $F9CA PUSH HL       ;
- $F9CB LD B,$00      ;
+*$F9C9 PUSH BC       ; { Remember these values.
+ $F9CA PUSH HL       ; }
+ $F9CB LD B,$00      ; { Copy a line onto screen.
  $F9CD EX DE,HL      ;
  $F9CE LDIR          ;
- $F9D0 EX DE,HL      ;
- $F9D1 POP HL        ;
- $F9D2 INC H         ;
- $F9D3 LD A,H        ;
- $F9D4 AND $07       ;
- $F9D6 JR NZ,$F9DE   ;
- $F9D8 LD H,$40      ;
+ $F9D0 EX DE,HL      ; }
+ $F9D1 POP HL        ; Restore HL.
+ $F9D2 INC H         ; Move to the next row.
+ $F9D3 LD A,H        ; { Have we reached the last block of 8?
+ $F9D4 AND $07       ; }
+ $F9D6 JR NZ,$F9DE   ; Jump forward if not.
+ $F9D8 LD H,$40      ; { Adjust screen address for next block of 8.
  $F9DA LD A,L        ;
  $F9DB ADD A,$20     ;
- $F9DD LD L,A        ;
-*$F9DE POP BC        ;
- $F9DF DJNZ $F9C9    ;
- $F9E1 LD B,$01      ;
+ $F9DD LD L,A        ; }
+*$F9DE POP BC        ; { Restore BC and loop round again if there are more rows.
+ $F9DF DJNZ $F9C9    ; }
 @label=Dollar_Scroll_Halt_Loop
+ $F9E1 LD B,$01      ; { Short delay. 
 *$F9E3 HALT          ;
- $F9E4 DJNZ $F9E3    ;
+ $F9E4 DJNZ $F9E3    ; }
  $F9E6 RET           ; Return.
- $F9E7 JP $EA90      ;
- $F9EA NOP           ;
- $F9EB NOP           ;
- $F9EC NOP           ;
- $F9ED NOP           ;
- $F9EE NOP           ;
- $F9EF NOP           ;
- $F9F0 NOP           ;
- $F9F1 NOP           ;
- $F9F2 NOP           ;
- $F9F3 NOP           ;
- $F9F4 NOP           ;
- $F9F5 NOP           ;
- $F9F6 NOP           ;
- $F9F7 NOP           ;
- $F9F8 NOP           ;
- $F9F9 NOP           ;
- $F9FA NOP           ;
- $F9FB NOP           ;
- $F9FC NOP           ;
- $F9FD NOP           ;
- $F9FE NOP           ;
- $F9FF NOP           ;
+ $F9E7 JP $EA90      ; Not used.
 
+ ;Unused
+ $F9EA DEFS $16      ;
+ 
 ; High Score Entry
 ;
 ; Used by the routine at #R$C7C0.
